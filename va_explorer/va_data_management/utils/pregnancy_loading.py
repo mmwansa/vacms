@@ -1,7 +1,11 @@
 import pandas as pd
 from simple_history.utils import bulk_create_with_history
 
-from va_explorer.va_data_management.models import Pregnancy
+from va_explorer.va_data_management.models import (
+    Pregnancy,
+    PregnancyChoiceReference,
+    PregnancyFieldReference,
+)
 
 
 def build_reference_from_xlsform(xls_path):
@@ -42,6 +46,35 @@ def build_reference_from_xlsform(xls_path):
             label = name
         choice_map.setdefault(list_name, {})[str(name)] = str(label)
 
+    return field_map, choice_map
+
+
+def save_reference_to_db(field_map, choice_map):
+    """Persist reference mappings to the database."""
+    PregnancyFieldReference.objects.all().delete()
+    PregnancyChoiceReference.objects.all().delete()
+
+    field_objs = [
+        PregnancyFieldReference(name=name, list_name=list_name)
+        for name, list_name in field_map.items()
+    ]
+    PregnancyFieldReference.objects.bulk_create(field_objs)
+
+    choice_objs = []
+    for list_name, mapping in choice_map.items():
+        for name, label in mapping.items():
+            choice_objs.append(
+                PregnancyChoiceReference(list_name=list_name, name=name, label=label)
+            )
+    PregnancyChoiceReference.objects.bulk_create(choice_objs)
+
+
+def load_reference_from_db():
+    """Load reference mappings from the database."""
+    field_map = {f.name: f.list_name for f in PregnancyFieldReference.objects.all()}
+    choice_map = {}
+    for choice in PregnancyChoiceReference.objects.all():
+        choice_map.setdefault(choice.list_name, {})[choice.name] = choice.label
     return field_map, choice_map
 
 
