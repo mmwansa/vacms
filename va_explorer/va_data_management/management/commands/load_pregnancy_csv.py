@@ -23,23 +23,41 @@ class Command(BaseCommand):
 
         # Read the CSV file into a DataFrame
         df = pd.read_csv(csv_file)
-        df.columns = df.columns.str.strip()  # strip whitespace from headers
+        df.columns = df.columns.str.strip()
+        # Build a lookup for case-insensitive column access
+        df_col_lookup = {c.lower(): c for c in df.columns}
 
         # List of columns to apply value -> label replacement
         odk_map_columns = [
-            'province', 'district', 'constituency', 'ward', 'ea', 'PE-03', 'PE-08', 'PE-09', 'PE-10', 'PE-11',
-            'PE-12', 'PE-12A', 'PE-13', 'PE-14', 'PE-15', 'PE-16', 'PE-17', 'PE-18', 'PE-23', 'PE-24'
+            'province',
+            'district',
+            'constituency',
+            'ward',
+            'ea',
+            'PE-03',
+            'PE-08',
+            'PE-09',
+            'PE-10',
+            'PE-11',
+            'PE-12',
+            'PE-12A',
+            'PE-13',
+            'PE-14',
+            'PE-15',
+            'PE-16',
+            'PE-17',
+            'PE-18',
+            'PE-23',
+            'PE-24',
         ]
-        odk_map_columns = [c.strip() for c in odk_map_columns]
+        odk_map_columns = [c.strip().lower() for c in odk_map_columns]
 
         # Build odk_map from ODKFormChoice, making sure field_names are stripped
         all_choices = ODKFormChoice.objects.filter(form_name=form_name)
         odk_map = {}
         for choice in all_choices:
-            field_name = choice.field_name.strip()
-            if field_name not in odk_map:
-                odk_map[field_name] = {}
-            odk_map[field_name][str(choice.value)] = choice.label
+            field_name = choice.field_name.strip().lower()
+            odk_map.setdefault(field_name, {})[str(choice.value).strip()] = choice.label
 
         # --- Robust value-to-label function ---
         def lookup_label(col, v):
@@ -71,12 +89,15 @@ class Command(BaseCommand):
 
         # --- Perform label replacement ---
         for col in odk_map_columns:
-            if col in df.columns and col in odk_map:
-                print(f"Mapping csv column '{col}' with odk_map keys {list(odk_map[col].keys())}")
-                print("BEFORE:", df[col].unique())
-                df[col] = df[col].map(lambda v: lookup_label(col, v))
-                print("AFTER:", df[col].unique())
-            elif col not in df.columns:
+            df_col = df_col_lookup.get(col)
+            if df_col and col in odk_map:
+                print(
+                    f"Mapping csv column '{df_col}' with odk_map keys {list(odk_map[col].keys())}"
+                )
+                print("BEFORE:", df[df_col].unique())
+                df[df_col] = df[df_col].map(lambda v: lookup_label(col, v))
+                print("AFTER:", df[df_col].unique())
+            elif not df_col:
                 print(f"Column '{col}' not in DataFrame")
             elif col not in odk_map:
                 print(f"Column '{col}' not in odk_map")
