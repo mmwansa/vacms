@@ -3,36 +3,8 @@ import re
 import pandas as pd
 from django.core.management.base import BaseCommand
 from va_explorer.va_data_management.models import ODKFormChoice
+from va_explorer.va_data_management.utils.loading import normalize_dataframe_columns, normalize_string, normalize_value
 
-def normalize_string(s):
-    """Strip whitespace, replace hyphens with underscores, remove surrounding quotes."""
-    if pd.isnull(s):
-        return ""
-    s = str(s).strip().replace("-", "_")
-    if s.startswith(("'", '"')): s = s[1:]
-    if s.endswith(("'", '"')): s = s[:-1]
-    return s
-
-def normalize_value(val):
-    """Remove leading zeros, normalize .0 floats to int, preserve case."""
-    if pd.isnull(val):
-        return ""
-    # Handle float/int conversion
-    try:
-        if isinstance(val, float) and val.is_integer():
-            val = int(val)
-        s = str(val).strip()
-        # If string looks like '1.0', '02.0', etc.
-        if s.replace('.', '', 1).isdigit():
-            float_val = float(s)
-            if float_val.is_integer():
-                s = str(int(float_val))
-        # Remove leading zeros for digit codes (but keep for non-numeric)
-        if s.isdigit():
-            s = str(int(s))
-        return normalize_string(s)
-    except Exception:
-        return normalize_string(val)
 
 class Command(BaseCommand):
     """Load the pregnancy ODK XLSForm definition with normalization (case preserved)."""

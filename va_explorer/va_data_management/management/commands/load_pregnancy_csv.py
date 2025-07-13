@@ -2,32 +2,8 @@ import argparse
 import pandas as pd
 from django.core.management.base import BaseCommand, CommandError
 from va_explorer.va_data_management.models import ODKFormChoice, Pregnancy
-from va_explorer.va_data_management.utils.loading import normalize_dataframe_columns
+from va_explorer.va_data_management.utils.loading import normalize_dataframe_columns, normalize_string, normalize_value
 
-def normalize_string(s):
-    if pd.isnull(s):
-        return ""
-    s = str(s).strip().replace("-", "_")
-    if s.startswith(("'", '"')): s = s[1:]
-    if s.endswith(("'", '"')): s = s[:-1]
-    return s
-
-def normalize_value(val):
-    if pd.isnull(val):
-        return ""
-    try:
-        if isinstance(val, float) and val.is_integer():
-            val = int(val)
-        s = str(val).strip()
-        if s.replace('.', '', 1).isdigit():
-            float_val = float(s)
-            if float_val.is_integer():
-                s = str(int(float_val))
-        if s.isdigit():
-            s = str(int(s))
-        return normalize_string(s)
-    except Exception:
-        return normalize_string(val)
 
 class Command(BaseCommand):
     """Load a pregnancy CSV using the previously loaded ODK definition."""
