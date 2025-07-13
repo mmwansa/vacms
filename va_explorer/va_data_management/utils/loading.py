@@ -47,6 +47,7 @@ def normalize_dataframe_columns(df, model):
 
     # Rename columns in the DataFrame
     df = df.rename(columns=rename_map)
+    df.columns = df.columns.str.strip()
 
     # Keep only columns that exist on the model
     df = df[[col for col in df.columns if col in model_fields_set]]
