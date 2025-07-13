@@ -5,45 +5,39 @@ from django.core.management.base import BaseCommand
 from va_explorer.va_data_management.models import ODKFormChoice
 
 def normalize_string(s):
-    """Strip whitespace, replace hyphens with underscores, remove quotes."""
+    """Strip whitespace, replace hyphens with underscores, remove surrounding quotes."""
     if pd.isnull(s):
         return ""
     s = str(s).strip().replace("-", "_")
-    # Remove surrounding single or double quotes
-    if s.startswith(("'", '"')):
-        s = s[1:]
-    if s.endswith(("'", '"')):
-        s = s[:-1]
+    if s.startswith(("'", '"')): s = s[1:]
+    if s.endswith(("'", '"')): s = s[:-1]
     return s
 
 def normalize_value(val):
-    """Normalize and remove leading zeros and .0 for integer-like values."""
+    """Remove leading zeros, normalize .0 floats to int, preserve case."""
     if pd.isnull(val):
         return ""
-    # Handle floats that are integer-like (e.g., 1.0, 2.0)
+    # Handle float/int conversion
     try:
         if isinstance(val, float) and val.is_integer():
             val = int(val)
-    except Exception:
-        pass
-    s = normalize_string(val)
-    # Also handle strings like '1.0', '02.0'
-    try:
+        s = str(val).strip()
+        # If string looks like '1.0', '02.0', etc.
         if s.replace('.', '', 1).isdigit():
             float_val = float(s)
             if float_val.is_integer():
                 s = str(int(float_val))
+        # Remove leading zeros for digit codes (but keep for non-numeric)
+        if s.isdigit():
+            s = str(int(s))
+        return normalize_string(s)
     except Exception:
-        pass
-    # Remove leading zeros for digit codes
-    if s.isdigit():
-        s = str(int(s))
-    return s
+        return normalize_string(val)
 
 class Command(BaseCommand):
-    """Load the pregnancy ODK XLSForm definition with full normalization."""
+    """Load the pregnancy ODK XLSForm definition with normalization (case preserved)."""
 
-    help = "Load pregnancy form definition (fully normalized)"
+    help = "Load pregnancy form definition (normalized, case preserved)"
 
     def add_arguments(self, parser):
         parser.add_argument("definition_file", type=argparse.FileType("rb"))
@@ -89,4 +83,4 @@ class Command(BaseCommand):
                     defaults={"label": norm_label},
                 )
                 created += 1
-        self.stdout.write(f"Loaded {created} choices for form {form_name} (fully normalized)")
+        self.stdout.write(f"Loaded {created} choices for form {form_name} (normalized, case preserved)")

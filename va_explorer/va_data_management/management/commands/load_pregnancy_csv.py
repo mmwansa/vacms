@@ -1,11 +1,33 @@
 import argparse
-
 import pandas as pd
 from django.core.management.base import BaseCommand, CommandError
-
 from va_explorer.va_data_management.models import ODKFormChoice, Pregnancy
 from va_explorer.va_data_management.utils.loading import normalize_dataframe_columns
 
+def normalize_string(s):
+    if pd.isnull(s):
+        return ""
+    s = str(s).strip().replace("-", "_")
+    if s.startswith(("'", '"')): s = s[1:]
+    if s.endswith(("'", '"')): s = s[:-1]
+    return s
+
+def normalize_value(val):
+    if pd.isnull(val):
+        return ""
+    try:
+        if isinstance(val, float) and val.is_integer():
+            val = int(val)
+        s = str(val).strip()
+        if s.replace('.', '', 1).isdigit():
+            float_val = float(s)
+            if float_val.is_integer():
+                s = str(int(float_val))
+        if s.isdigit():
+            s = str(int(s))
+        return normalize_string(s)
+    except Exception:
+        return normalize_string(val)
 
 class Command(BaseCommand):
     """Load a pregnancy CSV using the previously loaded ODK definition."""
@@ -19,96 +41,51 @@ class Command(BaseCommand):
         form_name = "pregnancy"
         csv_file = options["csv_file"]
 
-        if not ODKFormChoice.objects.filter(form_name=form_name).exists():
+        norm_form_name = normalize_string(form_name)
+
+        if not ODKFormChoice.objects.filter(form_name=norm_form_name).exists():
             raise CommandError("Definition for form 'pregnancy' has not been loaded")
 
-        # Read the CSV file into a DataFrame and normalize the columns early so
-        # that lookups work regardless of CSV header formatting.
-        df = pd.read_csv(csv_file)    
-
-         # Rename and filter DataFrame columns to align with model fields.
+        df = pd.read_csv(csv_file)
         df = normalize_dataframe_columns(df, Pregnancy)
 
-        # List of columns to apply value -> label replacement.  These names
-        # correspond to normalized model fields, so hyphens are replaced with
-        # underscores.
         odk_map_columns = [
-            'province',
-            'district',
-            'constituency',
-            'ward',
-            'ea',
-            'PE_03',
-            'PE_08',
-            'PE_09',
-            'PE_10',
-            'PE_11',
-            'PE_12',
-            'PE_12A',
-            'PE_13',
-            'PE_14',
-            'PE_15',
-            'PE_16',
-            'PE_17',
-            'PE_18',
-            'PE_23',
-            'PE_24',
+            'province','district','constituency','ward','ea',
+            'PE_03','PE_08','PE_09','PE_10','PE_11',
+            'PE_12','PE_12A','PE_13','PE_14','PE_15',
+            'PE_16','PE_17','PE_18','PE_23','PE_24',
         ]
         odk_map_columns = [c.strip() for c in odk_map_columns]
 
-        # Build odk_map from ODKFormChoice, making sure field_names are stripped
-        all_choices = ODKFormChoice.objects.filter(form_name=form_name)
+        # Build odk_map (all normalized but case preserved)
+        all_choices = ODKFormChoice.objects.filter(form_name=norm_form_name)
         odk_map = {}
         for choice in all_choices:
-            field_name = choice.field_name.strip()
-            value = str(choice.value).strip()
+            field_name = normalize_string(choice.field_name)
+            value = normalize_value(choice.value)
             if field_name not in odk_map:
                 odk_map[field_name] = {}
             odk_map[field_name][value] = choice.label
 
-        # --- Robust value-to-label function ---
         def lookup_label(col, v):
-            """
-            Convert a code value in the DataFrame (may be float, int, string, nan) to odk_map label.
-            Handles zero-padded, integer, float, and string codes.
-            """
-            if pd.isnull(v) or str(v).lower() == "nan":
-                return v  # Keep as NaN/None
-            v_str = str(v).strip()
-            # Try exact match
-            if v_str in odk_map[col]:
-                return odk_map[col][v_str]
-            # Try zero-padded string if numeric
-            if v_str.isdigit():
-                padded = v_str.zfill(2)
-                if padded in odk_map[col]:
-                    return odk_map[col][padded]
-            # Try int-from-float (e.g., '1.0' -> '01')
-            try:
-                as_int = int(float(v_str))
-                as_int_str = str(as_int).zfill(2)
-                if as_int_str in odk_map[col]:
-                    return odk_map[col][as_int_str]
-            except Exception:
-                pass
-            # Fallback: return as-is
-            return v
+            """Map value to label with normalization and robust handling."""
+            v_norm = normalize_value(v)
+            if v_norm in odk_map.get(col, {}):
+                return odk_map[col][v_norm]
+            # Fallback
+            return v if pd.isnull(v) or str(v).lower() == "nan" else v_norm
 
-        # --- Perform label replacement ---
+        # Perform label replacement
         for col in odk_map_columns:
-            if col in ['province','district','constituency','ward','ea',]:
-                print("BEFORE:", df[col].unique())
             if col in df.columns and col in odk_map:
-                print(
-                    f"Mapping csv column '{col}' with odk_map keys {list(odk_map[col].keys())}"
-                )
+                print(f"Mapping csv column '{col}' with odk_map keys {list(odk_map[col].keys())}")
                 print("BEFORE:", df[col].unique())
                 df[col] = df[col].map(lambda v, c=col: lookup_label(c, v))
                 print("AFTER:", df[col].unique())
             elif col not in df.columns:
                 print(f"Column '{col}' not in DataFrame")
             elif col not in odk_map:
-                print(f"Column '{col}' not in odk_map")       
+                print(f"Column '{col}' not in odk_map") 
 
         # Remove duplicate columns after renaming
         df = df.loc[:, ~df.columns.duplicated()]
@@ -119,10 +96,8 @@ class Command(BaseCommand):
 
         # Identify integer fields in the model
         int_fields = [
-            f.name
-            for f in Pregnancy._meta.get_fields()
-            if getattr(f, "get_internal_type", lambda: None)()
-            in [
+            f.name for f in Pregnancy._meta.get_fields()
+            if getattr(f, "get_internal_type", lambda: None)() in [
                 "IntegerField",
                 "BigIntegerField",
                 "SmallIntegerField",
@@ -131,14 +106,12 @@ class Command(BaseCommand):
             ]
         ]
 
-        # Helper to convert NaN to None for integer fields, per row
         def nan_to_none_for_intfields(row, int_fields):
             return {
                 k: (None if (k in int_fields and pd.isnull(v)) else v)
                 for k, v in row.items()
             }
 
-        # Create objects with robust NaN-to-None for integer fields
         objects = [
             Pregnancy(**nan_to_none_for_intfields(row, int_fields))
             for row in df.to_dict(orient="records")
