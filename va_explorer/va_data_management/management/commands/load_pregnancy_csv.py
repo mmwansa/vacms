@@ -27,7 +27,7 @@ class Command(BaseCommand):
         df = normalize_dataframe_columns(df, Pregnancy)
 
         odk_map_columns = [
-            'province','district','constituency','ward','ea','consent',
+            'province','district','constituency','ward','ea','enumerator','consent',
             'PE_03','PE_08','PE_09','PE_10','PE_11','PE_12','PE_12A',
             'PE_13','PE_14','PE_15','PE_16','PE_17','PE_18','PE_23','PE_24',
         ]

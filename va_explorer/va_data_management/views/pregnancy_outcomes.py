@@ -41,18 +41,7 @@ class PregnancyOutcomes(CustomAuthMixin, PermissionRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['filterset'] = self.filterset
-
-        context["object_list"] = [
-            {
-                "id": obj.id,
-                "mother": obj.PO_04,
-                "respondent": obj.PO_01,
-                "district": obj.district,
-                "date_of_delivery": obj.PO_41,
-            }
-            for obj in context["object_list"]
-        ]
+        context['filterset'] = self.filterset        
         return context
 
 class PregnancyOutcomeAccessMixin(SingleObjectMixin):

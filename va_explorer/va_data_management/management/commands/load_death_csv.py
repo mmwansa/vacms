@@ -27,7 +27,7 @@ class Command(BaseCommand):
         df = normalize_dataframe_columns(df, Death)
 
         odk_map_columns = [
-            'province','district','constituency','ward','ea','consent',
+            'province','district','constituency','ward','ea','supervisor','enumerator','consent',
             'DE_05','DE_07','DE_09','DE_11','DE_13','DE_16','DE_17',
             'DE_18','DE_21','DE_24','DE_30','DE_31'
         ]
