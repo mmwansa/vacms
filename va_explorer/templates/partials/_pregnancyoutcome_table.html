@@ -30,7 +30,7 @@
           <td>{{ o.PO_04|default:"Unknown" }}</td>
           <td>{{ o.PO_41|default:"-" }}</td>
           <td>{{ o.PO_46|default:"-" }}</td>
-          <td><a class="btn btn-primary" href="{% url 'va_data_management:pregnancyoutcome_show' id=o.id %}">View</a></td>
+          <td><a class="btn btn-primary" href="{% url 'va_data_management:pregnancy_outcome_detail' id=o.id %}">View</a></td>
           {% if va_data_cleanup and perms.va_data_cleanup.download %}
             <td>
               <a class="btn btn-primary" href="{% url 'data_cleanup:pregnancyoutcome_download' o.id %}">
@@ -40,7 +40,7 @@
           {% endif %}
           {% if va_data_cleanup and perms.va_data_management.delete_pregnancyoutcome %}
             <td>
-              <a class="btn btn-danger" href="{% url 'va_data_management:pregnancyoutcome_delete' o.id %}">
+              <a class="btn btn-danger" href="{% url 'va_data_management:pregnancy_outcome_delete' o.id %}">
                 <i class="fas fa-trash"></i>
               </a>
             </td>

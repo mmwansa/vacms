@@ -64,7 +64,7 @@ class PregnancyOutcomeDetail(
     CustomAuthMixin, PregnancyOutcomeAccessMixin, PermissionRequiredMixin, DetailView
 ):
     permission_required = "va_data_management.view_pregnancyoutcome"
-    template_name = "va_data_management/pregnancyoutcome_detail.html"
+    template_name = "va_data_management/pregnancy_outcome_detail.html"
     model = PregnancyOutcome
     pk_url_kwarg = "id"
 
@@ -83,14 +83,14 @@ class PregnancyOutcomeEdit(
     UpdateView,
 ):
     permission_required = "va_data_management.change_pregnancyoutcome"
-    template_name = "va_data_management/pregnancyoutcome_edit.html"
+    template_name = "va_data_management/pregnancy_outcome_edit.html"
     form_class = PregnancyOutcomeForm
     model = PregnancyOutcome
     pk_url_kwarg = "id"
     success_message = "Pregnancy outcome record successfully updated!"
 
     def get_success_url(self):
-        return reverse("va_data_management:pregnancyoutcome_detail", kwargs={"id": self.object.id})
+        return reverse("va_data_management:pregnancy_outcome_detail", kwargs={"id": self.object.id})
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -100,7 +100,7 @@ class PregnancyOutcomeEdit(
 class PregnancyOutcomeDelete(CustomAuthMixin, PermissionRequiredMixin, DeleteView):
     permission_required = "va_data_management.delete_pregnancyoutcome"
     model = PregnancyOutcome
-    success_url = reverse_lazy("va_data_management:pregnancyoutcome_list")
+    success_url = reverse_lazy("va_data_management:pregnancy_outcomes")
     success_message = "Pregnancy outcome %(id)s was deleted successfully"
     error_message = (
         "Pregnancy outcome %(id)s could not be deleted. This record doesn't exist or you don't have access."
@@ -121,7 +121,7 @@ pregnancyoutcome_delete = PregnancyOutcomeDelete.as_view()
 class PregnancyOutcomeDeleteAll(CustomAuthMixin, PermissionRequiredMixin, TemplateView):
     permission_required = "va_data_management.bulk_delete"
     model = PregnancyOutcome
-    success_url = reverse_lazy("va_data_management:pregnancyoutcome_list")
+    success_url = reverse_lazy("va_data_management:pregnancy_outcomes")
     success_message = "All Pregnancy Outcomes successfully deleted!"
     template_name = "va_data_management/pregnancyoutcome_confirm_delete_all.html"
 
