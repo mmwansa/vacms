@@ -6,9 +6,9 @@ from va_explorer.va_data_management.utils.loading import normalize_dataframe_col
 
 
 class Command(BaseCommand):
-    """Load a pregnancy CSV using the previously loaded ODK definition."""
+    """Load a pregnancy outcome CSV using the previously loaded ODK definition."""
 
-    help = "Load pregnancy CSV data"
+    help = "Load pregnancy outcome CSV data"
 
     def add_arguments(self, parser):
         parser.add_argument("csv_file", type=argparse.FileType("r"))
