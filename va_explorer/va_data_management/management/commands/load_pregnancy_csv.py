@@ -2,9 +2,11 @@ import argparse
 import pandas as pd
 from django.core.management.base import BaseCommand, CommandError
 from va_explorer.va_data_management.models import ODKFormChoice, Pregnancy
+
 from va_explorer.va_data_management.utils.loading import (
     normalize_dataframe_columns, normalize_string, load_odk_csv_to_model
 )
+
 
 class Command(BaseCommand):
     """Load a pregnancy CSV using the previously loaded ODK definition."""
@@ -40,5 +42,6 @@ class Command(BaseCommand):
             odk_map_columns=odk_map_columns,
             verbose=True  # Set to False to reduce output
         )
+
         Pregnancy.objects.bulk_create(objects)
         self.stdout.write(f"Imported {len(objects)} records for pregnancy")
